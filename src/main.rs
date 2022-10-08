@@ -6,8 +6,9 @@ use std::path::PathBuf;
 use std::fs::File;
 
 fn main() {
-    let args_folder = std::env::args().nth(1).expect("No folder as parameter !");
-    let predic = File::create("ouput.json");
+    let args_folder = std::env::args().nth(1).expect("Missing parameter(s)\n\nUsage:\nrusty-exif inputdir/ output-file.json");
+    let output_filename = std::env::args().nth(2).expect("Missing parameter(s)\n\nUsage:\nrusty-exif inputdir/ output-file.json");
+    let predic = File::create(output_filename);
 
     if predic.is_ok() {
         let mut output_file = predic.unwrap();
