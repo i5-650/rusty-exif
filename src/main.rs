@@ -25,10 +25,10 @@ fn json_string_from_dir(_path: PathBuf) -> String {
     let files_list = get_file_list(_path);
 
     for i in 0..files_list.len() {
-        string_data += format!("\"{}\":", files_list[i].as_path().display()).as_str();
+        string_data += "{";
+        string_data += format!("\"image_name\": \"{}\",", files_list[i].as_path().display()).as_str();
 
         if let Ok(file) = std::fs::File::open(files_list[i].as_path()) {
-            string_data += "{";
             let mut bufreader = std::io::BufReader::new(&file);
             let exifreader = exif::Reader::new();
 
