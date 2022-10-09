@@ -7,4 +7,3 @@ edition = "2021"
 
 [dependencies]
 kamadak-exif = "0.5.4"
-serde_json = "1.0"
