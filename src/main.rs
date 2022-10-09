@@ -24,12 +24,12 @@ fn main() {
 
 fn json_string_from_dir(_path: PathBuf) -> String {
     let mut string_data = String::new();
-    string_data += "{ \"datas\": { \"images\": [ ";
+    string_data += "{\n\t\"datas\": {\n\t\t\"images\": [\n";
     let files_list = get_file_list(_path);
 
     for i in 0..files_list.len() {
-        string_data += "{";
-        string_data += format!("\"image_name\": \"{}\",", files_list[i].as_path().display()).as_str();
+        string_data += "\t\t\t{\n";
+        string_data += format!("\t\t\t\t\"image_name\": \"{}\",\n", files_list[i].as_path().display()).as_str();
 
         if let Ok(file) = std::fs::File::open(files_list[i].as_path()) {
             let mut bufreader = std::io::BufReader::new(&file);
@@ -39,18 +39,18 @@ fn json_string_from_dir(_path: PathBuf) -> String {
                 for f in exif.fields() {
                     let key = f.tag;
                     let value = String::from(f.display_value().to_string());
-                    string_data += format!("\"{}\": {},", key, add_quote_if_needed(value)).as_str();
+                    string_data += format!("\t\t\t\t\"{}\": {},\n", key, add_quote_if_needed(value)).as_str();
                 }
             }
-            string_data.pop();
-            string_data += "}";
+            string_data.remove(string_data.len()-2);
+            string_data += "\t\t\t}";
         }
         if i != files_list.len() - 1 {
-            string_data += ",";
+            string_data += ",\n";
         }
         
     }
-    string_data += "]}";
+    string_data += "\n\t\t]\n\t}\n}";
     return string_data;
 }
 
