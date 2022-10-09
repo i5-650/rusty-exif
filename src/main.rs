@@ -5,9 +5,11 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::fs::File;
 
+const ERROR_MESSAGE: &str = "Missing parameter(s)\n\nUsage:\nrusty-exif inputdir/ output-file.json";
+
 fn main() {
-    let args_folder = std::env::args().nth(1).expect("Missing parameter(s)\n\nUsage:\nrusty-exif inputdir/ output-file.json");
-    let output_filename = std::env::args().nth(2).expect("Missing parameter(s)\n\nUsage:\nrusty-exif inputdir/ output-file.json");
+    let args_folder = std::env::args().nth(1).expect(ERROR_MESSAGE);
+    let output_filename = std::env::args().nth(2).expect(ERROR_MESSAGE);
     let predic = File::create(output_filename);
 
     if predic.is_ok() {
@@ -37,9 +39,10 @@ fn json_string_from_dir(_path: PathBuf) -> String {
                 for f in exif.fields() {
                     let key = f.tag;
                     let value = String::from(f.display_value().to_string());
-                    string_data += format!("\"{}\": {}, ", key, value).as_str();
+                    string_data += format!("\"{}\": {},", key, add_quote_if_needed(value)).as_str();
                 }
             }
+            string_data.pop();
             string_data += "}";
         }
         if i != files_list.len() - 1 {
@@ -61,4 +64,12 @@ fn get_file_list(_path: PathBuf) ->  Vec<PathBuf>{
     }
 
     return file_list;
+}
+
+fn add_quote_if_needed(value: String) -> String {
+    if !value.starts_with("\"") {
+        return String::from("\"") + &value + "\"";
+    }
+    
+    return value;
 }
