@@ -1,6 +1,6 @@
 [package]
 name = "rusty-exif"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -9,3 +9,4 @@ edition = "2021"
 kamadak-exif = "0.5.4"
 serde = { version = "1.0.145", features = ["derive"] }
 serde_json = "1.0.59"
+clap = {version = "4.0.22", features = ["derive"]}
