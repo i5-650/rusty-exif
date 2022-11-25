@@ -23,7 +23,6 @@ pub fn map_exif(_path_to_image: PathBuf) -> HashMap<String, String> {
     return map_data;
 }
 
-
 pub fn json_string_from_dir(_path: PathBuf) -> data_structures::Data {
     let files_list = get_file_list(_path);
     let mut data_out = data_structures::Data { images: vec![] };

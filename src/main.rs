@@ -1,3 +1,10 @@
+/**
+ * Licence: MIT
+ * Author: loic-prn
+ * Date: 2022-11-19
+ * 
+ */
+
 use std::io::Write;
 use std::path::PathBuf;
 use std::fs::File;
@@ -25,7 +32,11 @@ fn main() {
     let args = Args::parse();
     
     if args.file.is_some() && args.export.is_some() {
-        let predic = File::create(args.export.unwrap());
+        let mut filename = args.export.unwrap();
+        if !filename.ends_with(".json") {
+            filename.push_str(".json");
+        }
+        let predic = File::create(filename);
 
         if predic.is_ok() {
             let mut output_file = predic.unwrap();
@@ -42,7 +53,11 @@ fn main() {
         }
     }
     else if args.export.is_some() && args.folder.is_some() {
-        let predic = File::create(Args::parse().export.unwrap());
+        let mut filename = args.export.unwrap();
+        if !filename.ends_with(".json") {
+            filename.push_str(".json");
+        }
+        let predic = File::create(filename);
 
         if predic.is_ok() {
             let mut output_file = predic.unwrap();
