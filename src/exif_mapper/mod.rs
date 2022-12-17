@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::{fs, collections::HashMap};
+use sscanf::scanf;
 
 mod data_structures;
 
@@ -18,9 +19,27 @@ pub fn map_exif(_path_to_image: PathBuf) -> HashMap<String, String> {
                 }
                 map_data.insert(f.tag.to_string(), value);
             }
+
+            if map_data.contains_key("GPSLatitude") && map_data.contains_key("GPSLongitude") {
+                map_data.insert(
+                    "googleMap".to_string(), 
+                    format!("https://www.google.com/maps/search/?api=1&query={},{}",
+                         convert_dms_to_decimal(map_data.get("GPSLatitude").unwrap()), 
+                         convert_dms_to_decimal(map_data.get("GPSLongitude").unwrap())
+                        )
+                );
+            }
         }
     }
     return map_data;
+}
+
+pub fn convert_dms_to_decimal(dms: &String) -> f64 {
+    let parsed = scanf!(dms, "{} deg {} min {} sec", f64, f64, f64).unwrap();
+    let degrees = parsed.0;
+    let minutes = parsed.1;
+    let seconds = parsed.2;
+    return degrees + minutes / 60.0 + seconds / 3600.0;
 }
 
 pub fn json_string_from_dir(_path: PathBuf) -> data_structures::Data {
