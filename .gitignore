@@ -13,3 +13,4 @@ Cargo.lock
 
 /data/
 ouput.json
+.cargo/
