@@ -60,9 +60,11 @@ fn get_file_list(_path: PathBuf) ->  Vec<PathBuf>{
 	let mut file_list = vec![];
 
 	for file in fs::read_dir(_path).unwrap() {
-		file_list.push(
-			file.unwrap().path()
-		);
+		if !file.as_ref().unwrap().path().ends_with(".DS_Store") && !file.as_ref().unwrap().path().ends_with("/") {
+			file_list.push(
+				file.unwrap().path()
+			);
+		}
 	}
 
 	return file_list;

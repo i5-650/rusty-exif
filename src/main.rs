@@ -23,8 +23,10 @@ struct Args {
 	#[arg(short, long)]
 	export: Option<String>,
 	file: Option<PathBuf>,
-	#[arg(short = 'f', long)]
-	folder: Option<String>
+	#[arg(short = 'f', long = "folder")]
+	folder: Option<String>,
+	#[arg(short = 's', long = "split")]
+	separate: bool
 }
 
 fn main() {
@@ -46,7 +48,6 @@ fn main() {
 	}
 	else if args.export.is_some() && args.folder.is_some() {
 		let predic = check_extension(&mut args.export.unwrap());
-
 		let mut output_file = predic.unwrap();
 		let data_to_jsonify = exif_mapper::map_exif_from_folder(PathBuf::from(args.folder.unwrap()));
 		let output = serde_json::to_string_pretty(&data_to_jsonify);
@@ -54,6 +55,19 @@ fn main() {
 			println!("Couln't save file...");
 		}
 		
+	}
+	else if args.separate && args.folder.is_some() {
+		let data_to_jsonify = exif_mapper::map_exif_from_folder(PathBuf::from(args.folder.unwrap()));
+
+		for mut img in data_to_jsonify.0 {
+			let output = serde_json::to_string_pretty(&img);
+			img.name.push_str(".json");
+			let file = File::create(img.name);
+
+			if !file.unwrap().write(output.unwrap().as_bytes()).is_ok() {
+				println!("Couldn't write file");
+			}
+		}
 	}
 	else {
 		println!("No file or folder specified, use -h for help");
