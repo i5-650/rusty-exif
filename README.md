@@ -1,18 +1,43 @@
 # rusty-exif
-<img src="froggy.png" alt="rusty-exif-icon" style="width:300px;height:auto;"/>
-
 A simple exif tool for the command line written in Rust. 
 
 ## Usage
+
+The base tool is designed to be used in two modes
 ```
-Usage: rusty-exif [OPTIONS]
+Usage: rsexif <COMMAND>
+
+Commands:
+  file, -f, --file  Extract exif from a single file
+  dir, -d, --dir    Extract exif from every files in a directory
+  help              Print this message or the help of the given subcommand(s)
 
 Options:
-  -e, --export <EXPORT>  
-  -f, --file <FILE>      
-  -F, --folder <FOLDER>  
-  -h, --help             Print help information
-  -V, --version          Print version information
+  -h, --help  Print help
+```
+### Mode file
+```
+Usage: rsexif {file|--file|-f} [OPTIONS] <file>
+
+Arguments:
+  <file>  image to extract exif from
+
+Options:
+  -e, --export <export>  Json file to output exifs to
+  -h, --help             Print help
+```
+
+### Mode Directory
+```
+Usage: rsexif {dir|--dir|-d} [OPTIONS] <folder>
+
+Arguments:
+  <folder>  directory containing images to extract exifs from
+
+Options:
+  -s, --split <split>    Wether you decide to store all exifs into one file or multiples [possible values: true, false]
+  -e, --export <export>  The name of the Json file containing all the exifs
+  -h, --help             Print help
 ```
 
 ## Examples
@@ -36,4 +61,4 @@ rusty-exif -f image.jpg
 - [ ] Add a GUI
 - [X] Add the argument to convert GPS coordinates into a google maps link
 - [ ] Add the argument to convert GPS coordinates into an address and/or a screenshot of the location on a map.
-- [ ] Modify parameters to use rusty-exif the same way as exiftool
+- [X] Make a cleaner version of the CLI
