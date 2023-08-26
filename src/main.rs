@@ -1,14 +1,14 @@
+use clap::{ArgGroup, Parser};
+use std::fs::File;
+use rayon::prelude::{ParallelSliceMut, IntoParallelRefMutIterator, ParallelIterator};
 /**
  * Licence: MIT
  * Author: loic-prn
  * Date: 2022-11-19
- * 
+ *
  */
-
 use std::io::Write;
 use std::path::PathBuf;
-use std::fs::File;
-use clap::{ArgGroup, Parser};
 
 pub mod exif_mapper;
 
@@ -26,7 +26,7 @@ struct Args {
 	#[arg(short = 'f', long = "folder")]
 	folder: Option<String>,
 	#[arg(short = 's', long = "split")]
-	separate: bool
+	separate: bool,
 }
 
 fn main() {
@@ -40,36 +40,35 @@ fn main() {
 		if !output_file.write(output.unwrap().as_bytes()).is_ok() {
 			println!("Couln't save file...");
 		}
-	}
-	else if args.file.is_some() {
-		for (key, value) in exif_mapper::map_exif_from_file( PathBuf::from(args.file.unwrap())) {
+	} else if args.file.is_some() {
+		for (key, value) in exif_mapper::map_exif_from_file(PathBuf::from(args.file.unwrap())) {
 			println!("{}: {}", key, value);
 		}
-	}
-	else if args.export.is_some() && args.folder.is_some() {
+	} else if args.export.is_some() && args.folder.is_some() {
 		let predic = check_extension(&mut args.export.unwrap());
 		let mut output_file = predic.unwrap();
-		let data_to_jsonify = exif_mapper::map_exif_from_folder(PathBuf::from(args.folder.unwrap()));
+		let data_to_jsonify =
+			exif_mapper::map_exif_from_folder(PathBuf::from(args.folder.unwrap()));
 		let output = serde_json::to_string_pretty(&data_to_jsonify);
 		if !output_file.write(output.unwrap().as_bytes()).is_ok() {
 			println!("Couln't save file...");
 		}
-		
-	}
-	else if args.separate && args.folder.is_some() {
-		let data_to_jsonify = exif_mapper::map_exif_from_folder(PathBuf::from(args.folder.unwrap()));
+	} else if args.separate && args.folder.is_some() {
+		let mut data_to_jsonify =
+			exif_mapper::map_exif_from_folder(PathBuf::from(args.folder.unwrap()));
 
-		for mut img in data_to_jsonify.0 {
+
+		data_to_jsonify.as_parallel_slice_mut().par_iter_mut().for_each(|img| {
 			let output = serde_json::to_string_pretty(&img);
 			img.name.push_str(".json");
-			let file = File::create(img.name);
+			let file = File::create(&img.name);
 
 			if !file.unwrap().write(output.unwrap().as_bytes()).is_ok() {
 				println!("Couldn't write file");
 			}
-		}
-	}
-	else {
+		});
+
+	} else {
 		println!("No file or folder specified, use -h for help");
 	}
 }
@@ -80,4 +79,3 @@ fn check_extension(filename: &mut String) -> Result<File, std::io::Error> {
 	}
 	return File::create(filename);
 }
-

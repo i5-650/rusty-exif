@@ -11,6 +11,7 @@ Options:
   -e, --export <EXPORT>  
   -f, --file <FILE>      
   -F, --folder <FOLDER>  
+  -s,                    Create a single json file for each image
   -h, --help             Print help information
   -V, --version          Print version information
 ```

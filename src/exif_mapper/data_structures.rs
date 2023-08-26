@@ -1,8 +1,8 @@
-pub use serde::{Serialize, Deserialize};
+pub use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize)]
-pub struct Image { pub name: String, pub exifs: HashMap<String, String> }
-
-#[derive(Serialize, Deserialize)]
-pub struct Data(pub Vec<Image>);
+pub struct Image {
+	pub name: String,
+	pub exifs: HashMap<String, String>,
+}

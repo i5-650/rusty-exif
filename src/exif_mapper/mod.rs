@@ -2,6 +2,8 @@ use std::path::PathBuf;
 use std::{fs, collections::HashMap};
 use sscanf::scanf;
 
+use self::data_structures::Image;
+
 mod data_structures;
 
 pub fn map_exif_from_file(_path_to_image: PathBuf) -> HashMap<String, String> {
@@ -12,13 +14,16 @@ pub fn map_exif_from_file(_path_to_image: PathBuf) -> HashMap<String, String> {
 		let exifreader = exif::Reader::new();
 
 		if let Ok(exif) = exifreader.read_from_container(&mut bufreader) {
-			for f in exif.fields() {
-				let mut value = f.display_value().to_string();
-				if value.starts_with("\"") && value.ends_with("\"") {
-					value = value.strip_prefix("\"").unwrap().strip_suffix("\"").unwrap().to_string();
-				}
-				map_data.insert(f.tag.to_string(), value);
-			}
+
+			exif.fields()
+				.map(|f| (f.display_value().to_string(), f.tag.to_string()))
+				.for_each(|f| {
+					let mut value = f.0;
+					if value.starts_with("\"") && value.ends_with("\"") {
+						value = value.strip_prefix("\"").unwrap().strip_suffix("\"").unwrap().to_string();
+					}
+					map_data.insert(f.1, value);
+				});
 
 			if map_data.contains_key("GPSLatitude") && map_data.contains_key("GPSLongitude") {
 				map_data.insert(
@@ -42,12 +47,12 @@ pub fn convert_dms_to_decimal(dms: &String) -> f64 {
 	return degrees + minutes / 60.0 + seconds / 3600.0;
 }
 
-pub fn map_exif_from_folder(_path: PathBuf) -> data_structures::Data {
+pub fn map_exif_from_folder(_path: PathBuf) -> Vec<Image> {
 	let files_list = get_file_list(_path);
-	let mut data_out = data_structures::Data(vec![]);
+	let mut data_out = vec![];
 
 	for pathbuf_file in files_list {
-		data_out.0.push(data_structures::Image { 
+		data_out.push(data_structures::Image { 
 			name: pathbuf_file.as_path().display().to_string(), 
 			exifs: map_exif_from_file(pathbuf_file) }
 		);
