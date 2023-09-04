@@ -54,16 +54,14 @@ fn convert_dms_to_decimal(dms: &String) -> f64 {
 pub fn map_exif_from_folder(_path: PathBuf) -> Vec<Image> {
 	let files = fs::read_dir(_path).expect("Couldn't read the directory given");
 
-	let res = files.par_bridge()
-	.filter_map(|f| {f.ok()})
-	.filter(|f| !f.path().ends_with(".DS_Store") && !f.path().ends_with("/"))
-	.map(|f| {
-		let entry_path = f.path();
-		return data_structures::Image{
-			name: entry_path.display().to_string(),
-			exifs: map_exif_from_file(entry_path)
-		};
-	}).collect::<Vec<Image>>();
-
-	return res;
+	return files.par_bridge()
+		.filter_map(|f| {f.ok()})
+		.filter(|f| !f.path().ends_with(".DS_Store") && !f.path().ends_with("/"))
+		.map(|f| {
+			let entry_path = f.path();
+			return data_structures::Image{
+				name: entry_path.display().to_string(),
+				exifs: map_exif_from_file(entry_path)
+			};
+		}).collect::<Vec<Image>>();
 }
