@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::{fs, collections::HashMap};
 use sscanf::scanf;
+use rayon::prelude::*;
 
 use self::data_structures::Image;
 
@@ -51,33 +52,18 @@ fn convert_dms_to_decimal(dms: &String) -> f64 {
 }
 
 pub fn map_exif_from_folder(_path: PathBuf) -> Vec<Image> {
-	let files_list = list_files_in_dir(_path);
-	let mut data_out = vec![];
+	let files = fs::read_dir(_path).expect("Couldn't read the directory given");
 
-	files_list.iter().for_each(|file|{
-		data_out.push(data_structures::Image {
-			name: file.as_path().display().to_string(),
-			exifs: map_exif_from_file(file.to_owned())
-		});
-	});
-	return data_out;
-}
+	let res = files.par_bridge()
+	.filter_map(|f| {f.ok()})
+	.filter(|f| !f.path().ends_with(".DS_Store") && !f.path().ends_with("/"))
+	.map(|f| {
+		let entry_path = f.path();
+		return data_structures::Image{
+			name: entry_path.display().to_string(),
+			exifs: map_exif_from_file(entry_path)
+		};
+	}).collect::<Vec<Image>>();
 
-
-fn list_files_in_dir(path: PathBuf) ->  Vec<PathBuf>{
-	let mut file_list = vec![];
-
-	let files = fs::read_dir(path).expect("Couldn't read the directory given");
-
-	for file in files {
-		let path_file = file.as_ref()
-			.expect("Couldn't get the ref on a file in the directory")
-			.path();
-
-		if !path_file.ends_with(".DS_Store") && !path_file.ends_with("/") {
-			file_list.push(path_file);
-		}
-	}
-
-	return file_list;
+	return res;
 }
