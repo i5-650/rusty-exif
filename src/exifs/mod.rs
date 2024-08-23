@@ -3,16 +3,16 @@ use std::{fs, collections::HashMap};
 use sscanf::scanf;
 use rayon::prelude::*;
 
-use self::data_structures::Image;
+use self::structures::Image;
 
-pub mod data_structures;
+pub mod structures;
 
 const GOOGLE_MAP: &str = "googleMap";
 
-pub fn map_exif_from_file(_path_to_image: PathBuf) -> HashMap<String, String> {
+pub fn from_file(_path_to_image: String) -> HashMap<String, String> {
 	let mut map_data = HashMap::new();
 
-	let file = std::fs::File::open(_path_to_image.as_path()).expect("Couldn't open the image");
+	let file = std::fs::File::open(_path_to_image).expect("Couldn't open the image");
 	let mut bufreader = std::io::BufReader::new(&file);
 	let exifreader = exif::Reader::new();
 
@@ -26,7 +26,7 @@ pub fn map_exif_from_file(_path_to_image: PathBuf) -> HashMap<String, String> {
 
 		});
 	}
-	return add_google_map(map_data);
+	add_google_map(map_data)
 }
 
 fn add_google_map(mut map_data :HashMap<String, String>) -> HashMap<String, String> {
@@ -38,30 +38,31 @@ fn add_google_map(mut map_data :HashMap<String, String>) -> HashMap<String, Stri
 					convert_dms_to_decimal(map_data.get("GPSLongitude").unwrap())
 				));
 	}
-	return map_data;
+	map_data
 }
 
+#[inline(always)]
 fn format_value(input: String) -> String {
-	return input.replace("\"", "").to_string();
+	input.replace("\"", "").to_string()
 }
 
 fn convert_dms_to_decimal(dms: &String) -> f64 {
 	let parsed = scanf!(dms, "{} deg {} min {} sec", f64, f64, f64).unwrap();
 	let (degrees, minutes, seconds) = parsed;
-	return degrees + minutes / 60.0 + seconds / 3600.0;
+	degrees + minutes / 60.0 + seconds / 3600.0
 }
 
-pub fn map_exif_from_folder(_path: PathBuf) -> Vec<Image> {
+pub fn from_folder(_path: PathBuf) -> Vec<Image> {
 	let files = fs::read_dir(_path).expect("Couldn't read the directory given");
 
 	return files.par_bridge()
 		.filter_map(|f| {f.ok()})
 		.filter(|f| !f.path().ends_with(".DS_Store") && !f.path().ends_with("/"))
 		.map(|f| {
-			let entry_path = f.path();
-			return data_structures::Image{
-				name: entry_path.display().to_string(),
-				exifs: map_exif_from_file(entry_path)
-			};
+			let entry_path = f.path().display().to_string();
+			structures::Image{
+				name: entry_path.clone(),
+				exifs: from_file(entry_path)
+			}
 		}).collect::<Vec<Image>>();
 }

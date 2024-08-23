@@ -1,119 +1,134 @@
-/**
- * Licence: MIT
- * Author: loic-prn
- * Date: 2022-11-19
- *
- */
-
-use std::any::Any;
-use std::collections::HashMap;
-use clap::{ArgGroup, Parser};
+use clap::{Parser, Subcommand};
+use rayon::{
+    prelude::ParallelSliceMut,
+    iter::{
+        IntoParallelRefMutIterator,
+        ParallelIterator
+    }
+};
+use exifs::structures::Image;
 use std::fs::File;
-use std::println;
-use rayon::prelude::{ParallelSliceMut, IntoParallelRefMutIterator, ParallelIterator};
-use std::io::Write;
+use std::io::{self, Write};
 use std::path::PathBuf;
-use exif_mapper::data_structures::Image;
+use std::println;
+use anyhow::{Result, anyhow};
 
-pub mod exif_mapper;
+pub mod exifs;
 
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
-#[command(group(
-	ArgGroup::new("incompatibles")
-		.required(false)
-		.args(["file", "folder"])
-))]
+#[command(
+    author="i5-650", 
+    about="Exif extraction tools", 
+    long_about = None)]
 struct Args {
-	#[arg(short = 'e', long = "export")]
-	export: Option<String>,
-	file: Option<PathBuf>,
-	#[arg(short = 'f', long = "folder")]
-	folder: Option<String>,
-	#[arg(short = 's', long = "split")]
-	separate: bool,
+    #[command(subcommand)]
+    command: Commands
 }
 
-impl Args {
-	pub fn export_and_file(&self) -> bool{
-		return self.export.is_some() && self.file.is_some();
-	}
+#[derive(Debug, Subcommand)]
+enum Commands {
 
-	pub fn file_no_export(&self) -> bool {
-		return self.file.is_some() && self.export.is_none();
-	}
+    #[command(arg_required_else_help = true, long_flag = "file", short_flag = 'f', about = "Extract exif from a single file")]
+    File {
+        #[arg(value_name = "file", required = true, help = "image to extract exif from")]
+        file: String,
+        
+        #[arg(value_name = "export", required = false, short = 'e', long = "export", help = "Json file to output exifs to")]
+        export: Option<String>,
+    },
 
-	pub fn folder_no_split(&self) -> bool {
-		return self.folder.is_some() && !self.separate;
-	}
+    #[command(arg_required_else_help = true, long_flag = "dir", short_flag = 'd', about = "Extract exif from every files in a directory")]
+    Dir {
+        #[arg(value_name = "folder", required = true, help = "directory containing images to extract exifs from")]
+        folder: String,
+        
+        #[arg(value_name = "split", required = false, conflicts_with = "export_folder", short = 's', long = "split", help = "Wether you decide to store all exifs into one file or multiples")]
+        split: Option<bool>,
 
-	pub fn folder_split(&self) -> bool {
-		return self.folder.is_some() && self.separate;
-	}
+        #[arg(value_name = "export", required_unless_present = "split", short = 'e', long = "export", help = "The name of the Json file containing all the exifs")]
+        export_folder: Option<String>,
+    }
 }
 
-fn main() {
-	let args = &Args::parse();
 
-	if args.export.is_some() || args.folder_no_split() {
-		let filename = args.export.as_deref().expect("Couldn't get the export filename");
-		let mut output_file = check_extension(&mut filename.to_string());
-		
-		let to_write :Box<dyn Any>;
+fn main() -> Result<()> {
+    let args = Args::parse();
 
-		if args.export_and_file() {
-			let file_par = args.file.as_deref().expect("Invalid file given as parameter");
-			let image_path = PathBuf::from(file_par);
-			to_write = Box::new(exif_mapper::map_exif_from_file(image_path));
+    let status = match &args.command {
+        Commands::File { file, export } => {
+            let m_file = file.as_str();
+            let export = export.to_owned();
+            file_module(m_file.to_string(), export)
+        }, 
 
-		} else {
-			let folder_par = args.folder.as_deref().expect("Couldn't get the input folder");
-			let folder_path = PathBuf::from(folder_par);
-			to_write = Box::new(exif_mapper::map_exif_from_folder(folder_path));
-		};
+        Commands::Dir { folder, split, export_folder } => {
+            folder_module(folder, *split, export_folder)
+        }
+    };
 
-		if let Some(map) = to_write.downcast_ref::<HashMap<String, String>>() {
-			let serialized = serde_json::to_string_pretty(map).expect("Couldn't serialize data");
-			output_file.write(serialized.as_bytes()).expect("Couldn't write data in the file.");
-		} else if let Some(list_img) = to_write.downcast_ref::<Vec<Image>>() {
-			let serialized = serde_json::to_string_pretty(list_img).expect("Couldn't serialize data");
-			output_file.write(serialized.as_bytes()).expect("Couldn't write data in the file.");
-		}
+    if let Err(e) = status {
+        println!("Error while extracing exifs");
+        Err(anyhow!(e))
+    } else {
+        Ok(())
+    }
+}
 
-		return;
-	}
 
-	if args.file_no_export() {
-		let file_par = args.file.as_deref().expect("Invalid file given as parameter");
-		let image_path = PathBuf::from(file_par);
-		let to_print= exif_mapper::map_exif_from_file(image_path);
-		for (key, value) in to_print {
+fn file_module(filename: String, export_file: Option<String>) -> Result<(), io::Error> {
+    let exifs = exifs::from_file(filename);
+
+    if export_file.is_some() {
+        let serialized = serde_json::to_string_pretty(&exifs).expect("Map must be <String, String>");
+        let mut export = export_file.unwrap();
+        let mut json_file = create_json_file(&mut export)?;
+        json_file.write_all(serialized.as_bytes())?
+    } else {
+        for (key, value) in exifs {
 			println!("{}: {}", key, value);
 		}
-		return;
-	}
-
-	if args.folder_split() {
-		let folder_par = args.folder.as_deref().expect("Couldn't get the input folder");
-		let folder_path = PathBuf::from(folder_par);
-		let mut to_write = exif_mapper::map_exif_from_folder(folder_path);
-		to_write.as_parallel_slice_mut()
-			.par_iter_mut()
-			.for_each(|img| {
-				let serialized = serde_json::to_string_pretty(&img).expect("Couldn't serialize data");
-				img.name.push_str(".json");
-				let mut output_file = File::create(&img.name).expect("Coulnd't create an output file named as one of the input files");
-				output_file.write(serialized.as_bytes()).expect("Couldn't write data in the file.");
-			});
-		return;
-	}
-
-	println!("Something went wrong with parameters");
+    }
+    Ok(())
 }
 
-fn check_extension(filename: &mut String) -> File {
-	if !filename.ends_with(".json") {
-		filename.push_str(".json");
-	}
-	return File::create(filename).expect("Couldn't create the ouput file.");
+fn create_json_file(filename: &mut String) -> Result<File, io::Error> {
+    if !filename.ends_with(".json") {
+        filename.push_str(".json");
+    }
+    File::create(filename)
 }
+
+
+fn folder_module(folder_name: &String, split: Option<bool>, export_file: &Option<String>) -> Result<(), io::Error> {
+    let folder = PathBuf::from(folder_name);
+    let mut exifs = exifs::from_folder(folder);
+
+    if split.is_some() && split.unwrap() {
+        let list_err = exifs.as_parallel_slice_mut()
+            .par_iter_mut()
+            .map(|img: &mut Image| {
+                let serialized = serde_json::to_string_pretty(&img).expect("Map must be <String, String>");
+                img.name.push_str(".json");
+                exif_to_json(serialized, &img.name)
+            })
+            .collect::<Vec<Result<()>>>();
+        if !list_err.is_empty() {
+            println!("[/!\\] Error encountered while creating/writing to files.");
+        }
+    } else if let Some(mut export) = export_file.to_owned() {
+        let mut export = create_json_file(&mut export)?;
+        let serialized = serde_json::to_string_pretty(&exifs).expect("Map must be <String, String>");
+        export.write_all(serialized.as_bytes())?
+    }
+
+    Ok(())
+}
+
+fn exif_to_json(content: String, path: &String) -> Result<()> {
+    let mut json_file = File::create(path)?;
+    match json_file.write_all(content.as_bytes()) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(anyhow!(e))
+    }
+}
+
