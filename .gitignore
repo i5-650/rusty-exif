@@ -18,3 +18,4 @@ Cargo.lock
 *.jpeg
 *.jpg
 *.heic
+!/tests/resources/*

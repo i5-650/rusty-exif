@@ -40,20 +40,6 @@ Options:
   -h, --help             Print help
 ```
 
-## Examples
-### Read exif data from an image and save it to a json file
-```
-rusty-exif -f image.jpg -e exif.json
-```
-### Read exif data from multiple images and save it to a json file
-```
-rusty-exif -F folder -e exif.json
-```
-### Read exif data from a file and print everything
-```
-rusty-exif -f image.jpg
-```
-
 ## To-do
 - [x] Read exif data
 - [x] Write exif data in a json file (for one or multiple files)
