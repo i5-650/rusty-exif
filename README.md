@@ -10,6 +10,7 @@ Usage: rsexif <COMMAND>
 Commands:
   file, -f, --file  Extract exif from a single file
   dir, -d, --dir    Extract exif from every files in a directory
+  rm, -r, --remove  Remove exifs
   help              Print this message or the help of the given subcommand(s)
 
 Options:
@@ -38,6 +39,17 @@ Options:
   -s, --split <split>    Wether you decide to store all exifs into one file or multiples [possible values: true, false]
   -e, --export <export>  The name of the Json file containing all the exifs
   -h, --help             Print help
+```
+
+### Mode Remove
+```
+Usage: rsexif {rm|--remove|-r} <path>
+
+Arguments:
+  <path>  file to remove exifs from
+
+Options:
+  -h, --help  Print help
 ```
 
 ## To-do

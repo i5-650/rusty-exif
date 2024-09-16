@@ -1,6 +1,5 @@
 use clap::{Parser, Subcommand};
-use std::println;
-use anyhow::{Result, anyhow, Error};
+use anyhow::{Result, Error};
 
 extern crate rsexif;
 use rsexif::modules;
@@ -40,6 +39,12 @@ enum Commands {
 
         #[arg(value_name = "export", required_unless_present = "split", short = 'e', long = "export", help = "The name of the Json file containing all the exifs")]
         export_folder: Option<String>,
+    },
+
+    #[command(arg_required_else_help = true, long_flag = "remove", short_flag = 'r', about = "Remove exifs")]
+    Rm {
+        #[arg(value_name = "path", required = true, help = "file to remove exifs from")]
+        path: String
     }
 }
 
@@ -47,7 +52,7 @@ enum Commands {
 fn main() -> Result<(), Error> {
     let args = Args::parse();
 
-    let status = match &args.command {
+   match &args.command {
         Commands::File { file, export, json } => {
             let m_file = file.as_str();
             let export = export.to_owned();
@@ -57,14 +62,10 @@ fn main() -> Result<(), Error> {
 
         Commands::Dir { dir, split, export_folder } => {
             modules::dir_module(dir, *split, export_folder)
-        }
-    };
+        },
 
-    if let Err(e) = status {
-        println!("Error while extracing exifs");
-        Err(anyhow!(e))
-    } else {
-        Ok(())
+        Commands::Rm { path } => {
+            modules::remove_module(path)
+        }
     }
 }
-
